@@ -327,7 +327,7 @@ INSERT INTO #charlson_scoring (
 VALUES (
 	11,
 	'Diabetes with chronic complications',
-	2
+	1
 	);
 
 INSERT INTO #charlson_concepts (
@@ -358,7 +358,7 @@ INSERT INTO #charlson_scoring (
 VALUES (
 	12,
 	'Hemoplegia or paralegia',
-	2
+	1
 	);
 
 INSERT INTO #charlson_concepts (
@@ -387,7 +387,7 @@ INSERT INTO #charlson_scoring (
 VALUES (
 	13,
 	'Renal disease',
-	2
+	1
 	);
 
 INSERT INTO #charlson_concepts (
@@ -414,7 +414,7 @@ INSERT INTO #charlson_scoring (
 VALUES (
 	14,
 	'Any malignancy',
-	2
+	1
 	);
 
 INSERT INTO #charlson_concepts (
@@ -538,7 +538,7 @@ INSERT INTO #charlson_scoring (
 VALUES (
 	15,
 	'Moderate to severe liver disease',
-	3
+	1
 	);
 
 INSERT INTO #charlson_concepts (
@@ -564,7 +564,7 @@ INSERT INTO #charlson_scoring (
 VALUES (
 	16,
 	'Metastatic solid tumor',
-	6
+	1
 	);
 
 INSERT INTO #charlson_concepts (
@@ -593,7 +593,7 @@ INSERT INTO #charlson_scoring (
 VALUES (
 	17,
 	'AIDS',
-	6
+	1
 	);
 
 INSERT INTO #charlson_concepts (
@@ -608,7 +608,6 @@ WHERE descendant_concept_id IN (37017595, 37017319, 37017244, 4262297, 439727, 4
 ;
 
 -- Feature construction
-{@aggregated} ? {
 IF OBJECT_ID('tempdb..#charlson_data', 'U') IS NOT NULL
 	DROP TABLE #charlson_data;
 
@@ -626,15 +625,12 @@ SELECT cohort_definition_id,
 	cohort_start_date,
 	SUM(weight) AS score
 INTO #charlson_data
-} : {
+
 SELECT CAST(1000 + @analysis_id AS BIGINT) AS covariate_id,
-{@temporal} ? {
-    CAST(NULL AS INT) AS time_id,
-}	
+    CAST(NULL AS INT) AS time_id,	
 	row_id,
 	SUM(weight) AS covariate_value
 INTO @covariate_table
-}
 FROM (
 	SELECT DISTINCT charlson_scoring.diag_category_id,
 		charlson_scoring.weight,
