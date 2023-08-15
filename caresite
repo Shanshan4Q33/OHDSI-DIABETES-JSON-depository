@@ -1,5 +1,5 @@
 select cast(care_site_id as bigint)*1000 + @analysis_id as covariate_id,
-       c.concept_name as covariate_name,
+       c.care_site_id as covariate_name,
        care_site_id  as concept_id,
        count(*) as sum_value,
        count(*)*1.0 / stat.total_cnt*1.0 as average_value
@@ -8,8 +8,7 @@ from (select distinct care_site_id,
              cohort.cohort_start_date
       from @cohort_table cohort
         inner join @cdm_database_schema.visit_occurrence on cohort.subject_id = visit_occurrence.person_id
-      where visit_start_date >= dateadd(d,-180,cohort.cohort_start_date)
-      and   visit_start_date <= dateadd(d,180,cohort.cohort_start_date)
+      where visit_start_date = dateadd(d,0,cohort.cohort_start_date)
       and  visit_concept_id != 0
       and   cohort.cohort_definition_id = @cohort_id) visit_entries
   join @cdm_database_schema.concept c on visit_entries.care_site_id  = c.concept_id
