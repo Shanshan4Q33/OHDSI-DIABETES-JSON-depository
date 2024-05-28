@@ -1,20 +1,21 @@
-select cast(care_site_id as bigint)*1000 + @analysis_id as covariate_id,
-       c.care_site_id as covariate_name,
-       care_site_id  as concept_id,
+-- Custom analysis producing same results as Feature Extraction's "One covariate per condition_concept_id in the condition_occurrence table during the time period prior to index."
+select cast(condition_concept_id as bigint)*1000 + @analysis_id as covariate_id,
+       c.concept_name as covariate_name,
+       condition_concept_id as concept_id,
        count(*) as sum_value,
        count(*)*1.0 / stat.total_cnt*1.0 as average_value
-from (select distinct care_site_id,
+from (select distinct condition_concept_id,
              cohort.subject_id,
              cohort.cohort_start_date
       from @cohort_table cohort
-        inner join @cdm_database_schema.visit_occurrence on cohort.subject_id = visit_occurrence.person_id
-      where visit_start_date = dateadd(d,0,cohort.cohort_start_date)
-      and  visit_concept_id != 0
-      and   cohort.cohort_definition_id = @cohort_id) visit_entries
-  join @cdm_database_schema.concept c on visit_entries.care_site_id  = c.concept_id
+        inner join @cdm_database_schema.condition_occurrence on cohort.subject_id = condition_occurrence.person_id
+      where condition_start_date >= dateadd(d,0,cohort.cohort_start_date)
+      and   condition_concept_id != 0
+      and   cohort.cohort_definition_id = @cohort_id) condition_entries
+  join @cdm_database_schema.concept c on condition_entries.condition_concept_id = c.concept_id
   cross join (select count(*) total_cnt
               from @cohort_table
               where cohort_definition_id = @cohort_id) stat
-group by care_site_id ,
+group by condition_concept_id,
          c.concept_name,
          stat.total_cnt
