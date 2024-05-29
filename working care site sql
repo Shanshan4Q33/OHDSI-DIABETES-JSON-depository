@@ -1,0 +1,21 @@
+-- Custom analysis producing visit counts by care_site_id
+select cast(c.care_site_id as bigint)*1000 + 116 as covariate_id,
+       c.care_site_name as care_site_name,
+       c.care_site_id as care_site_id,
+       count(*) as visit_count,
+       count(*)*1.0 / stat.total_cnt*1.0 as visit_proportion
+from (select distinct care_site_id,
+			 cohort.subject_id,
+             cohort.cohort_start_date
+      from Neonatal_Scratch.dbo.HIE_149 cohort
+        inner join Neonatal_OMOP.dbo.visit_occurrence on cohort.subject_id = visit_occurrence.person_id
+      where visit_start_date = dateadd(d,0,cohort.cohort_start_date)
+      and   care_site_id != 0
+      and   cohort.cohort_definition_id = 149) visit_entries
+  join Neonatal_OMOP.dbo.care_site c on visit_entries.care_site_id = c.care_site_id
+  cross join (select count(*) total_cnt
+              from Neonatal_Scratch.dbo.HIE_149
+              where cohort_definition_id = 149) stat
+group by c.care_site_id,
+         c.care_site_name,
+         stat.total_cnt
