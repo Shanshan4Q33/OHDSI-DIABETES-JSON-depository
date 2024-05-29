@@ -1,0 +1,33 @@
+- testing care site
+
+
+select cast(care_site_id as bigint)*1000 + @analysis_id as covariate_id,
+       count(*) as sum_value,
+       count(*)*1.0 / stat.total_cnt*1.0 as average_value
+INTO @covariate_table
+FROM (
+	SELECT cohort.cohort_definition_id,
+		CASE 
+			WHEN visit_detail.care_site_id IS NOT NULL THEN visit_detail.care_site_id
+			WHEN visit_occurrence.care_site_id IS NOT NULL THEN visit_occurrence.care_site_id
+			ELSE person.care_site_id
+		END AS care_site_id,
+		ROW_NUMBER() OVER (PARTITION BY cohort_definition_id ORDER BY visit_detail.visit_detail_end_date,  visit_occurrence.visit_end_date) AS rn
+	FROM @cohort_table cohort
+	INNER JOIN @cdm_database_schema.person
+		ON cohort.subject_id = person.person_id
+	LEFT JOIN @cdm_database_schema.visit_occurrence
+		ON cohort.subject_id = visit_occurrence.person_id	
+			AND visit_occurrence.visit_start_date <= cohort.cohort_start_date
+			AND visit_occurrence.visit_end_date >= cohort.cohort_start_date
+	LEFT JOIN @cdm_database_schema.visit_detail
+		ON cohort.subject_id = visit_detail.person_id	
+			AND visit_detail.visit_detail_start_date <= cohort.cohort_start_date
+			AND visit_detail.visit_detail_end_date >= cohort.cohort_start_date
+	WHERE NOT (person.care_site_id IS NULL 
+		AND visit_occurrence.care_site_id IS NULL 
+		AND visit_detail.care_site_id IS NULL
+	) care_site
+group by cohort_definition_id,
+	care_site_id,
+	care_site_name
